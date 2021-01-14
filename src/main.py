@@ -1,5 +1,5 @@
 import torch
-from pytorch_pretrained_bert import BertAdam
+from pytorch_pretrained_bert import BertAdam, BertTokenizer
 
 from model import Model
 from preprocess import process_data
@@ -7,8 +7,10 @@ from utils import train, test
 
 train_loader, test_loader = process_data()
 
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = Model().to(DEVICE)
+model.resize_token_embeddings(len(tokenizer))
 # print(model)
 
 param_optimizer = list(model.named_parameters())  # 模型参数名字列表
