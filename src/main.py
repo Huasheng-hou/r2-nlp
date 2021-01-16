@@ -2,16 +2,14 @@ import torch
 from pytorch_pretrained_bert import BertAdam, BertTokenizer
 
 from model import Model
-from preprocess import process_data
+from datasets import Quora, MSRP
 from utils import train, test
 
-train_loader, test_loader = process_data()
+train_loader, test_loader = MSRP()
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+torch.cuda.set_device(1)
 model = Model().to(DEVICE)
-model.resize_token_embeddings(len(tokenizer))
-# print(model)
 
 param_optimizer = list(model.named_parameters())  # 模型参数名字列表
 no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -19,15 +17,15 @@ optimizer_grouped_parameters = [
     {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
     {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
 
-NUM_EPOCHS = 3
+NUM_EPOCHS = 4
 optimizer = BertAdam(optimizer_grouped_parameters,
-                     lr=2e-5,
+                     lr=5e-5,
                      warmup=0.05,
                      t_total=len(train_loader) * NUM_EPOCHS
                      )
 
 best_acc = 0.0
-PATH = 'roberta_model.pth'  # 定义模型保存路径
+PATH = 'msrp_model.pth'  # 定义模型保存路径
 for epoch in range(1, NUM_EPOCHS+1):  # 3个epoch
     train(model, DEVICE, train_loader, optimizer, epoch)
     acc = test(model, DEVICE, test_loader)
