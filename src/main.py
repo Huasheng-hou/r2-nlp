@@ -2,14 +2,14 @@ import torch
 from pytorch_pretrained_bert import BertAdam, BertTokenizer
 
 from model import Model
-from datasets import Quora, MSRP
+from datasets import Quora, MSRP, SICK
 from utils import train, test
 
-train_loader, test_loader = MSRP()
+train_loader, test_loader = SICK()
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.cuda.set_device(1)
-model = Model().to(DEVICE)
+model = Model(3).to(DEVICE)
 
 param_optimizer = list(model.named_parameters())  # 模型参数名字列表
 no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']

@@ -48,14 +48,20 @@ def process_data(input_ids, input_segs, input_masks, label):
     return train_loader, test_loader
 
 
-def embeddings(tokenizer, tokens, pad_size=48):
+def embeddings(tokenizer, s1, s2, pad_size=48):
     # 得到input_id, seg_id, att_mask
+    x1 = tokenizer.tokenize(s1)
+    x2 = tokenizer.tokenize(s2)
+    len_1, len_2 = len(x1), len(x2)
+
+    tokens = ["[CLS]"] + x1 + ["[SEP]"] + x2 + ["[SEP]"]
     ids = tokenizer.convert_tokens_to_ids(tokens)
-    segs = [0] * len(ids)
+    segs = [0] * (len_1 + 2) + [1] * (len_2 + 1)
+    # segs = [0] * len(ids)
     masks = [1] * len(ids)
     # 短则补齐，长则切断
     if len(ids) < pad_size:
-        segs = segs + [1] * (pad_size - len(ids))  # mask部分 segment置为1
+        segs = segs + [0] * (pad_size - len(ids))  # mask部分 segment置为1
         masks = masks + [0] * (pad_size - len(ids))
         ids = ids + [0] * (pad_size - len(ids))
     else:
@@ -65,7 +71,7 @@ def embeddings(tokenizer, tokens, pad_size=48):
     return ids, segs, masks
 
 
-def MSRP(pad_size=72):
+def MSRP(pad_size=128):
 
     train = pd.read_csv('../data/MSRP/msr_paraphrase_train.txt', sep='\t', quoting=3)
     test = pd.read_csv('../data/MSRP/msr_paraphrase_test.txt', sep='\t', quoting=3)
@@ -85,13 +91,9 @@ def MSRP(pad_size=72):
             continue
         if not isinstance(s2, str):
             continue
-        x1 = tokenizer.tokenize(s1)
-        x2 = tokenizer.tokenize(s2)
-        tokens = ["[CLS]"] + x1 + ["[SEP]"] + x2 + ["[SEP]"]
-        # tokens = ["[CLS]"] + x1 + x2 + ["[SEP]"]
 
         # 得到input_id, seg_id, att_mask
-        ids, segs, masks = embeddings(tokenizer, tokens, pad_size=pad_size)
+        ids, segs, masks = embeddings(tokenizer, s1, s2, pad_size=pad_size)
         input_ids.append(ids)
         input_segs.append(segs)
         input_masks.append(masks)
@@ -112,7 +114,7 @@ def MSRP(pad_size=72):
     y_test = np.array(label[train_len:])
     print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
 
-    BATCH_SIZE = 16
+    BATCH_SIZE = 32
     train_data = TensorDataset(torch.LongTensor(input_ids_train),
                                torch.LongTensor(input_types_train),
                                torch.LongTensor(input_masks_train),
@@ -147,16 +149,48 @@ def Quora(pad_size=48):
             continue
         if not isinstance(q2, str):
             continue
-        x1 = tokenizer.tokenize(q1)
-        x2 = tokenizer.tokenize(q2)
-        tokens = ["[CLS]"] + x1 + ["[SEP]"] + x2 + ["[SEP]"]
 
         # 得到input_id, seg_id, att_mask
-        ids, segs, masks = embeddings(tokenizer, tokens, pad_size=pad_size)
+        ids, segs, masks = embeddings(tokenizer, q1, q2, pad_size=pad_size)
         input_ids.append(ids)
         input_segs.append(segs)
         input_masks.append(masks)
         assert len(ids) == len(masks) == len(segs) == pad_size
         label.append([int(row['is_duplicate'])])
+
+    return process_data(input_ids, input_segs, input_masks, label)
+
+
+def SICK(pad_size=48):
+
+    f = pd.read_csv('../data/SICK/SICK.txt', sep='\t', quoting=3)
+
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+    input_ids = []  # input char ids
+    input_segs = []  # segment ids
+    input_masks = []  # attention mask
+    label = []  # 标签
+
+    for index, row in tqdm(f.iterrows()):
+        s1, s2 = row['sentence_A'], row['sentence_B']
+        if not isinstance(s1, str):
+            continue
+        if not isinstance(s2, str):
+            continue
+
+        # 得到input_id, seg_id, att_mask
+        ids, segs, masks = embeddings(tokenizer, s1, s2, pad_size=pad_size)
+        input_ids.append(ids)
+        input_segs.append(segs)
+        input_masks.append(masks)
+        assert len(ids) == len(masks) == len(segs) == pad_size
+        entail = row['entailment_label']
+        if entail == 'NEUTRAL':
+            label.append(0)
+        elif entail == 'ENTAILMENT':
+            label.append(1)
+        else:
+            label.append(2)
 
     return process_data(input_ids, input_segs, input_masks, label)
