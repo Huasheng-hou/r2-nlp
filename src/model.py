@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from pytorch_pretrained_bert import BertModel, BertTokenizer, BertConfig, BertAdam
+import torch.nn.functional as F
+from pytorch_pretrained_bert import BertModel
 
 
 class Model(nn.Module):
@@ -32,12 +33,14 @@ class R2Net(nn.Module):
         self.alpha.data.fill_(1.0 / 12)
 
         self.K = 3
-        self.CNNS = []
+        self.CNNS = nn.ModuleList()
         for kernel in range(1, self.K + 1):
-            self.CNNS.append(nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(kernel, kernel)))
+            self.CNNS.append(nn.Conv2d(in_channels=1, out_channels=1, kernel_size=(kernel, 1)))
+
+        self.linear_l = nn.Linear(self.K*768*2, 768)
 
         self.mlp1 = nn.Sequential(
-            nn.Linear(768, 200),
+            nn.Linear(768*2, 200),
             nn.ReLU(inplace=True),
             nn.Linear(200, 3),
             nn.Softmax()
@@ -74,7 +77,24 @@ class R2Net(nn.Module):
         for l_index in range(12):
             H += self.alpha[l_index] * h[l_index][:, 1:, :]
 
-        # H_k =
+        H = H.unsqueeze(1)
+        h = []
 
-        out = self.fc(pooled)  # 得到10分类
+        for k in range(self.K):
+            H_k = self.CNNS[k](H)
+            h_max = F.max_pool2d(H_k, kernel_size=(47-k, 1))
+            h_avg = F.avg_pool2d(H_k, kernel_size=(47-k, 1))
+            h.append(h_max)
+            h.append(h_avg)
+
+        h = torch.cat(h, dim=3)
+        v_l = self.linear_l(h).squeeze(dim=1).squeeze(dim=1)
+        v_l = F.relu(v_l)
+
+        v = torch.cat([v_g, v_l], dim=1)
+
+        out = self.mlp1(v)
+        out = F.softmax(out)
+
+        # out = self.fc(pooled)  # 得到10分类
         return out

@@ -11,6 +11,7 @@ def run(train_loader, test_loader):
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.cuda.set_device(1)
     model = R2Net(3).to(DEVICE)
+    # print(model)
 
     param_optimizer = list(model.named_parameters())  # 模型参数名字列表
     no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
@@ -18,7 +19,7 @@ def run(train_loader, test_loader):
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
 
-    NUM_EPOCHS = 100
+    NUM_EPOCHS = 5
     optimizer = BertAdam(optimizer_grouped_parameters,
                          lr=5e-5,
                          warmup=0.05,
@@ -38,7 +39,7 @@ def run(train_loader, test_loader):
 
 train_data, test_data = SICK()
 
-times = 20
+times = 1
 
 for idx in range(times):
     run(train_data, test_data)
