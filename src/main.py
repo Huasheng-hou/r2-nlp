@@ -6,11 +6,11 @@ from datasets import Quora, MSRP, SICK
 from utils import train, test
 
 
-def run(train_loader, test_loader):
+def run(train_loader, test_loader, model):
 
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.cuda.set_device(1)
-    model = R2Net(3).to(DEVICE)
+    model.to(DEVICE)
     # print(model)
 
     param_optimizer = list(model.named_parameters())  # 模型参数名字列表
@@ -39,7 +39,12 @@ def run(train_loader, test_loader):
 
 train_data, test_data = SICK()
 
-times = 1
+times = 3
+
+base, R2Net = Model(3), R2Net(3)
 
 for idx in range(times):
-    run(train_data, test_data)
+    print("WITHOUT LOCAL ENCODER:\n")
+    run(train_data, test_data, base)
+    print("WITH LOCAL ENCODER:\n")
+    run(train_data, test_data, R2Net)

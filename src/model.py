@@ -42,8 +42,7 @@ class R2Net(nn.Module):
         self.mlp1 = nn.Sequential(
             nn.Linear(768*2, 200),
             nn.ReLU(inplace=True),
-            nn.Linear(200, 3),
-            nn.Softmax()
+            nn.Linear(200, 3)
         )
 
         self.mlp2 = nn.Sequential(
@@ -53,7 +52,7 @@ class R2Net(nn.Module):
             nn.Softmax()
         )
 
-        self.fc = nn.Linear(768, cls)  # 768 -> 2
+        self.fc = nn.Linear(768*2, cls)  # 768 -> 2
 
     def forward(self, x):
         context = x[0]  # 输入的句子   (ids, seq_len, mask)
@@ -87,14 +86,15 @@ class R2Net(nn.Module):
             h.append(h_max)
             h.append(h_avg)
 
+        ''' 得到 local encoding '''
         h = torch.cat(h, dim=3)
         v_l = self.linear_l(h).squeeze(dim=1).squeeze(dim=1)
         v_l = F.relu(v_l)
 
         v = torch.cat([v_g, v_l], dim=1)
 
-        out = self.mlp1(v)
-        out = F.softmax(out)
+        # out = self.mlp1(pooled)
+        # out = F.softmax(out)
 
-        # out = self.fc(pooled)  # 得到10分类
+        out = self.fc(v)  # 得到10分类
         return out
