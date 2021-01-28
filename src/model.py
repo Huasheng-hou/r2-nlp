@@ -159,4 +159,7 @@ class LEM(nn.Module):
         z = torch.stack(z)
 
         out = self.fc(z)  # 得到10分类
-        return out
+        if self.training:
+            return out
+        else:
+            return out, z, self.label_embeddings
