@@ -2,7 +2,7 @@ import torch
 from pytorch_pretrained_bert import BertAdam, BertTokenizer
 
 from model import Model, R2Net
-from datasets import Quora, MSRP, SICK
+from datasets import Quora, MSRP, SICK, AGNews
 from utils import train, test
 
 
@@ -37,14 +37,14 @@ def run(train_loader, test_loader, model):
         print("acc is: {:.4f}, best acc is {:.4f}\n".format(acc, best_acc))
 
 
-train_data, test_data = SICK()
+train_data, test_data = AGNews()
 
 times = 3
 
-base, R2Net = Model(3), R2Net(3)
+base, R2Net = Model(4), R2Net(4)
 
 for idx in range(times):
     print("WITHOUT LOCAL ENCODER:\n")
     run(train_data, test_data, base)
-    print("WITH LOCAL ENCODER:\n")
-    run(train_data, test_data, R2Net)
+    # print("WITH LOCAL ENCODER:\n")
+    # run(train_data, test_data, R2Net)
