@@ -14,10 +14,10 @@ def train(model, device, train_loader, optimizer, epoch):   # 训练模型
         loss = F.cross_entropy(y_pred, y.squeeze())  # 得到loss
         loss.backward()
         optimizer.step()
-        if(batch_idx + 1) % 400 == 0:    # 打印loss
+        if(batch_idx + 1) % 100 == 0:    # 打印loss
             print('Train Epoch: {} [{}/{} ({:.2f}%)]\tLoss: {:.6f}'.format(epoch, (batch_idx+1) * len(x1),
                                                                            len(train_loader.dataset),
-                                                                           100. * batch_idx / len(train_loader),
+                                                                           100. * (batch_idx+1) / len(train_loader),
                                                                            loss.item()))  # 记得为loss.item()
 
 
