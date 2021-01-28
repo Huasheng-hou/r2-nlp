@@ -9,3 +9,10 @@ Model  | Accuracy  |
  ---- | ----- | ------  
  w/o local encoding  | 0.8750 | 0.8755 | 0.8709
  with local encoding  | 0.8816 | 0.8765 | 0.8765
+
+AGNews BERT-base, batch_size=16, lr=5e-5, epoch=5, acc:0.9455, 0.9405
+
+AGNews first 10000 cases, BERT-base, batch_size=16, lr=5e-5, epoch=5, acc:0.9195, 0.9150, 0.9055
+AGNews first 10000 cases, BERT-base, batch_size=16, lr=5e-5, epoch=5, w/o local encoding:0.9195, 0.9185, with local encoder:0.9230, 0.9195
+AGNews first 10000 cases, BERT-base, batch_size=16, lr=5e-5, epoch=4, with label embedding, acc:0.9205
+AGNews first 10000 cases, BERT-base, batch_size=16, lr=5e-5, epoch=5, with label embedding, acc:0.9265
