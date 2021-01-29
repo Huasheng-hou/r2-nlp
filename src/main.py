@@ -4,6 +4,7 @@ from pytorch_pretrained_bert import BertAdam, BertTokenizer
 from model import Model, R2Net, LEM
 from datasets import Quora, MSRP, SICK, AGNews
 from utils import train, test, test_lem
+from visualize import TSNE
 
 
 def run(train_loader, test_loader, model):
@@ -30,7 +31,7 @@ def run(train_loader, test_loader, model):
     PATH = 'sick_model.pth'  # 定义模型保存路径
     for epoch in range(1, NUM_EPOCHS + 1):  # 3个epoch
         train(model, DEVICE, train_loader, optimizer, epoch)
-        acc, _V, _C = test_lem(model, DEVICE, test_loader)
+        acc, _V, _C, _Y = test_lem(model, DEVICE, test_loader)
         if best_acc < acc:
             best_acc = acc
             torch.save(model.state_dict(), PATH)  # 保存最优模型
@@ -48,7 +49,9 @@ base, R2Net, LEM = Model(4), R2Net(4), LEM(4)
 
 run(train_data, test_data, LEM)
 
-_, V, C = test_lem(LEM, DEVICE, test_data)
+_, V, C, Y = test_lem(LEM, DEVICE, test_data)
+
+TSNE(torch.cat(V), C, torch.cat(Y), cls=4)
 
 # for idx in range(times):
 #     print("WITHOUT LOCAL ENCODER:\n")
