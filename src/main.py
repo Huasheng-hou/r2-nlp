@@ -20,7 +20,7 @@ def run(train_loader, test_loader, model):
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
 
-    NUM_EPOCHS = 5
+    NUM_EPOCHS = 6
     optimizer = BertAdam(optimizer_grouped_parameters,
                          lr=5e-5,
                          warmup=0.05,
