@@ -58,7 +58,4 @@ def test_lem(model, device, test_loader):    # 测试模型, 得到测试集评�
         labels.append(pred)
         acc += pred.eq(y.view_as(pred)).sum().item()    # 记得加item()
     test_loss /= len(test_loader)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)'.format(
-          test_loss, acc, len(test_loader.dataset),
-          100. * acc / len(test_loader.dataset)))
     return acc / len(test_loader.dataset), input_embeddings, label_embeddings, labels
