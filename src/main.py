@@ -2,7 +2,7 @@ import torch
 from pytorch_pretrained_bert import BertAdam, BertTokenizer
 
 from model import Model, R2Net, LEM
-from datasets import Quora, MSRP, SICK, AGNews
+from datasets import Quora, MSRP, SICK, AGNews, NG
 from utils import train, test, test_lem
 from visualize import TSNE
 
@@ -20,7 +20,7 @@ def run(train_loader, test_loader, model):
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
 
-    NUM_EPOCHS = 1
+    NUM_EPOCHS = 5
     optimizer = BertAdam(optimizer_grouped_parameters,
                          lr=5e-5,
                          warmup=0.05,
@@ -38,21 +38,23 @@ def run(train_loader, test_loader, model):
         print("acc is: {:.4f}, best acc is {:.4f}\n".format(acc, best_acc))
 
 
-train_data, test_data = AGNews()
+train_data, test_data = NG()
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-torch.cuda.set_device(1)
+# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# torch.cuda.set_device(1)
 
-times = 5
+times, cls = 5, 20
 
-base, R2Net, LEM = Model(4), R2Net(4), LEM(4)
+# base, R2Net, LEM = Model(cls), R2Net(cls), LEM(cls)
 
-run(train_data, test_data, LEM)
+base = Model(cls)
 
-_, V, C, Y = test_lem(LEM, DEVICE, test_data)
+run(train_data, test_data, base)
+
+# _, V, C, Y = test_lem(LEM, DEVICE, test_data)
 
 # 特征向量可视化
-TSNE(torch.cat(V), C, torch.cat(Y), cls=4)
+# TSNE(torch.cat(V), C, torch.cat(Y), cls=4)
 
 # for idx in range(times):
 #     print("WITHOUT LABEL EMBEDDING:\n\n")
