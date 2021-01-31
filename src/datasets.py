@@ -244,10 +244,10 @@ def AGNews(pad_size=60):
         assert len(ids) == len(masks) == len(segs) == pad_size
         label.append([int(row['class'])-1])
 
-    #     if index >= 9999:
-    #         break
-    #
-    # return process_data(input_ids, input_segs, input_masks, label)
+        if index >= 9999:
+            break
+
+    return process_data(input_ids, input_segs, input_masks, label)
 
     train_len = len(train)
 
