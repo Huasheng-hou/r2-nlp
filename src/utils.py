@@ -9,7 +9,8 @@ def train(model, device, train_loader, optimizer, epoch):   # 训练模型
     for batch_idx, (x1, x2, x3, y) in enumerate(train_loader):
         start_time = time.time()
         x1, x2, x3, y = x1.to(device), x2.to(device), x3.to(device), y.to(device)
-        y_pred = model([x1, x2, x3])  # 得到预测结果
+        out = model([x1, x2, x3])  # 得到预测结果
+        y_pred = out[0]
         model.zero_grad()             # 梯度清零
         loss = F.cross_entropy(y_pred, y.squeeze())  # 得到loss
         loss.backward()
@@ -28,7 +29,8 @@ def test(model, device, test_loader):    # 测试模型, 得到测试集评估�
     for batch_idx, (x1, x2, x3, y) in enumerate(test_loader):
         x1, x2, x3, y = x1.to(device), x2.to(device), x3.to(device), y.to(device)
         with torch.no_grad():
-            y_ = model([x1, x2, x3])
+            out = model([x1, x2, x3])
+        y_ = out[0]
         test_loss += F.cross_entropy(y_, y.squeeze())
         pred = y_.max(-1, keepdim=True)[1]   # .max(): 2输出，分别为最大值和最大值的index
         acc += pred.eq(y.view_as(pred)).sum().item()    # 记得加item()
@@ -47,7 +49,8 @@ def test_lem(model, device, test_loader):    # 测试模型, 得到测试集评�
     for batch_idx, (x1, x2, x3, y) in enumerate(test_loader):
         x1, x2, x3, y = x1.to(device), x2.to(device), x3.to(device), y.to(device)
         with torch.no_grad():
-            y_, V, C = model([x1, x2, x3])
+            out = model([x1, x2, x3])
+        y_, V, C = out[0], out[1], out[2]
         input_embeddings.append(V.cpu())
         label_embeddings = C.cpu()
         test_loss += F.cross_entropy(y_, y.squeeze())

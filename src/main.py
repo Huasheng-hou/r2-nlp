@@ -20,7 +20,7 @@ def run(train_loader, test_loader, model):
         {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
 
-    NUM_EPOCHS = 1
+    NUM_EPOCHS = 6
     optimizer = BertAdam(optimizer_grouped_parameters,
                          lr=5e-5,
                          warmup=0.05,
@@ -31,7 +31,7 @@ def run(train_loader, test_loader, model):
     PATH = 'sick_model.pth'  # 定义模型保存路径
     for epoch in range(1, NUM_EPOCHS + 1):  # 3个epoch
         train(model, DEVICE, train_loader, optimizer, epoch)
-        acc, _V, _C, _Y = test_lem(model, DEVICE, test_loader)
+        acc = test(model, DEVICE, test_loader)
         if best_acc < acc:
             best_acc = acc
             torch.save(model.state_dict(), PATH)  # 保存最优模型
@@ -43,18 +43,19 @@ train_data, test_data = AGNews()
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 torch.cuda.set_device(1)
 
-times = 2
+times = 5
 
 base, R2Net, LEM = Model(4), R2Net(4), LEM(4)
 
-run(train_data, test_data, LEM)
+# run(train_data, test_data, LEM)
 
-_, V, C, Y = test_lem(LEM, DEVICE, test_data)
+# _, V, C, Y = test_lem(LEM, DEVICE, test_data)
 
-TSNE(torch.cat(V), C, torch.cat(Y), cls=4)
+# 特征向量可视化
+# TSNE(torch.cat(V), C, torch.cat(Y), cls=4)
 
-# for idx in range(times):
-#     print("WITHOUT LOCAL ENCODER:\n")
-#     run(train_data, test_data, base)
-#     print("WITH LOCAL ENCODER:\n")
-#     run(train_data, test_data, R2Net)
+for idx in range(times):
+    print("WITHOUT LABEL EMBEDDING:\n\n")
+    run(train_data, test_data, base)
+    print("WITH LABEL EMBEDDING:\n")
+    run(train_data, test_data, LEM)

@@ -20,7 +20,7 @@ class Model(nn.Module):
                               attention_mask=mask,
                               output_all_encoded_layers=True)  # 控制是否输出所有encoder层的结果
         out = self.fc(pooled)  # 得到10分类
-        return out
+        return [out]
 
 
 class R2Net(nn.Module):
@@ -97,7 +97,7 @@ class R2Net(nn.Module):
         # out = F.softmax(out)
 
         out = self.fc(v)  # 得到10分类
-        return out
+        return [out]
 
 
 class LEM(nn.Module):
@@ -160,6 +160,6 @@ class LEM(nn.Module):
 
         out = self.fc(z)  # 得到10分类
         if self.training:
-            return out
+            return [out]
         else:
-            return out, z, self.label_embeddings
+            return [out, z, self.label_embeddings]
