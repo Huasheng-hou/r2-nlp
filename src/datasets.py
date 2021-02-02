@@ -7,9 +7,6 @@ import torch
 from sklearn.datasets import fetch_20newsgroups
 
 
-''' 1. TOKENIZE '''
-
-
 def process_data(input_ids, input_segs, input_masks, label):
 
     # 随机打乱索引
@@ -361,3 +358,72 @@ def NG(pad_size=300):
 
     return train_loader, test_loader
 
+
+def SNLI(pad_size=48):
+
+    train = pd.read_csv('../data/SNLI/snli_1.0_train.txt', sep='\t')
+    test = pd.read_csv('../data/SNLI/snli_1.0_test.txt', sep='\t')
+
+    f = pd.concat([train, test])
+
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+    input_ids = []  # input char ids
+    input_segs = []  # segment ids
+    input_masks = []  # attention mask
+    label = []  # 标签
+
+    for index, row in tqdm(f.iterrows()):
+        s1, s2 = row['sentence1'], row['sentence2']
+        if not isinstance(s1, str):
+            continue
+        if not isinstance(s2, str):
+            continue
+
+        if row['gold_label'] == '-':
+            continue
+
+        # 得到input_id, seg_id, att_mask
+        ids, segs, masks = embeddings(tokenizer, s1, s2, pad_size=pad_size)
+        input_ids.append(ids)
+        input_segs.append(segs)
+        input_masks.append(masks)
+        assert len(ids) == len(masks) == len(segs) == pad_size
+        entail = row['gold_label']
+        if entail == 'neutral':
+            label.append(0)
+        elif entail == 'entailment':
+            label.append(1)
+        else:
+            label.append(2)
+
+    train_len = len(train)
+
+    input_ids_train = np.array(input_ids[:train_len])
+    input_types_train = np.array(input_segs[:train_len])
+    input_masks_train = np.array(input_masks[:train_len])
+    y_train = np.array(label[:train_len])
+    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
+
+    input_ids_test = np.array(input_ids[train_len:])
+    input_types_test = np.array(input_segs[train_len:])
+    input_masks_test = np.array(input_masks[train_len:])
+    y_test = np.array(label[train_len:])
+    print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
+
+    BATCH_SIZE = 16
+    train_data = TensorDataset(torch.LongTensor(input_ids_train),
+                               torch.LongTensor(input_types_train),
+                               torch.LongTensor(input_masks_train),
+                               torch.LongTensor(y_train))
+    train_sampler = RandomSampler(train_data)
+    train_loader = DataLoader(train_data, sampler=train_sampler, batch_size=BATCH_SIZE)
+
+    test_data = TensorDataset(torch.LongTensor(input_ids_test),
+                              torch.LongTensor(input_types_test),
+                              torch.LongTensor(input_masks_test),
+                              torch.LongTensor(y_test))
+    test_sampler = SequentialSampler(test_data)
+    test_loader = DataLoader(test_data, sampler=test_sampler, batch_size=BATCH_SIZE)
+
+    return train_loader, test_loader

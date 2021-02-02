@@ -2,7 +2,7 @@ import torch
 from pytorch_pretrained_bert import BertAdam, BertTokenizer
 
 from model import Model, R2Net, LEM
-from datasets import Quora, MSRP, SICK, AGNews, NG
+from datasets import Quora, MSRP, SICK, AGNews, NG, SNLI
 from utils import train, test, test_lem
 from visualize import TSNE
 
@@ -38,16 +38,17 @@ def run(train_loader, test_loader, model):
         print("acc is: {:.4f}, best acc is {:.4f}\n".format(acc, best_acc))
 
 
-train_data, test_data = NG()
+train_data, test_data = SNLI()
 
 # DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # torch.cuda.set_device(1)
 
-times, cls = 5, 20
+times, cls = 5, 3
 
 # base, R2Net, LEM = Model(cls), R2Net(cls), LEM(cls)
 
 base = Model(cls)
+# LEM = LEM(cls)
 
 run(train_data, test_data, base)
 

@@ -5,29 +5,18 @@ from sklearn.datasets import fetch_20newsgroups
 from pprint import pprint
 import torch
 
-newsgroup_train = fetch_20newsgroups(subset='train')
-newsgroup_test = fetch_20newsgroups(subset='test')
+f = pd.read_csv('../data/SNLI/snli_1.0_train.txt', sep='\t')
 
-train = newsgroup_train.data
-test = newsgroup_test.data
+datas = f.drop(labels=['sentence1_binary_parse', 'sentence2_binary_parse', 'sentence1_parse',
+                       'sentence2_parse', 'captionID', 'pairID', 'label1', 'label2', 'label3',
+                       'label4', 'label5'], axis=1, inplace=False)
 
-train_labels = newsgroup_train.target
-test_labels = newsgroup_test.target
+datas.to_csv('../data/SNLI/dev.csv')
 
-f = np.concatenate([train, test])
 
-input_ids = []  # input char ids
-input_segs = []  # segment ids
-input_masks = []  # attention mask
-label = []  # 标签
 
-for row in tqdm(f):
-    print(row)
-# f = pd.read_csv('../data/AGNews/test.csv', sep='\t', quoting=3)
-f = pd.read_csv('../data/AGNews/train.csv')
-
-for index, row in tqdm(f.iterrows()):
-    print(row)
+# for index, row in tqdm(f.iterrows()):
+#     print(row)
     # print(row['#1 String'])
     # print(row['entailment_label'])
 
