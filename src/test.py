@@ -4,16 +4,9 @@ from tqdm import tqdm
 from sklearn.datasets import fetch_20newsgroups
 from pprint import pprint
 import torch
+from datasets import load_dataset
 
-f = pd.read_csv('../data/SNLI/snli_1.0_train.txt', sep='\t')
-
-datas = f.drop(labels=['sentence1_binary_parse', 'sentence2_binary_parse', 'sentence1_parse',
-                       'sentence2_parse', 'captionID', 'pairID', 'label1', 'label2', 'label3',
-                       'label4', 'label5'], axis=1, inplace=False)
-
-datas.to_csv('../data/SNLI/dev.csv')
-
-
+train_loader, test_loader = load_dataset('20NG')
 
 # for index, row in tqdm(f.iterrows()):
 #     print(row)

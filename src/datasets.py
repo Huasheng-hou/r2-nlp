@@ -7,44 +7,6 @@ import torch
 from sklearn.datasets import fetch_20newsgroups
 
 
-def process_data(input_ids, input_segs, input_masks, label):
-    # 随机打乱索引
-    random_order = list(range(len(input_ids)))
-    np.random.seed(2020)  # 固定种子
-    np.random.shuffle(random_order)
-    print(random_order[:10])
-
-    # 4:1 划分训练集和测试集
-    input_ids_train = np.array([input_ids[i] for i in random_order[:int(len(input_ids) * 0.8)]])
-    input_types_train = np.array([input_segs[i] for i in random_order[:int(len(input_ids) * 0.8)]])
-    input_masks_train = np.array([input_masks[i] for i in random_order[:int(len(input_ids) * 0.8)]])
-    y_train = np.array([label[i] for i in random_order[:int(len(input_ids) * 0.8)]])
-    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
-
-    input_ids_test = np.array([input_ids[i] for i in random_order[int(len(input_ids) * 0.8):]])
-    input_types_test = np.array([input_segs[i] for i in random_order[int(len(input_ids) * 0.8):]])
-    input_masks_test = np.array([input_masks[i] for i in random_order[int(len(input_ids) * 0.8):]])
-    y_test = np.array([label[i] for i in random_order[int(len(input_ids) * 0.8):]])
-    print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
-
-    BATCH_SIZE = 16
-    train_data = TensorDataset(torch.LongTensor(input_ids_train),
-                               torch.LongTensor(input_types_train),
-                               torch.LongTensor(input_masks_train),
-                               torch.LongTensor(y_train))
-    train_sampler = RandomSampler(train_data)
-    train_loader = DataLoader(train_data, sampler=train_sampler, batch_size=BATCH_SIZE)
-
-    test_data = TensorDataset(torch.LongTensor(input_ids_test),
-                              torch.LongTensor(input_types_test),
-                              torch.LongTensor(input_masks_test),
-                              torch.LongTensor(y_test))
-    test_sampler = SequentialSampler(test_data)
-    test_loader = DataLoader(test_data, sampler=test_sampler, batch_size=BATCH_SIZE)
-
-    return train_loader, test_loader
-
-
 def embeddings(tokenizer, s1, s2, pad_size=48):
     # 得到input_id, seg_id, att_mask
     x1 = tokenizer.tokenize(s1)
@@ -98,34 +60,8 @@ def MSRP(pad_size=128):
 
     train_len = len(train)
 
-    input_ids_train = np.array(input_ids[:train_len])
-    input_types_train = np.array(input_segs[:train_len])
-    input_masks_train = np.array(input_masks[:train_len])
-    y_train = np.array(label[:train_len])
-    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
-
-    input_ids_test = np.array(input_ids[train_len:])
-    input_types_test = np.array(input_segs[train_len:])
-    input_masks_test = np.array(input_masks[train_len:])
-    y_test = np.array(label[train_len:])
-    print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
-
-    BATCH_SIZE = 32
-    train_data = TensorDataset(torch.LongTensor(input_ids_train),
-                               torch.LongTensor(input_types_train),
-                               torch.LongTensor(input_masks_train),
-                               torch.LongTensor(y_train))
-    train_sampler = RandomSampler(train_data)
-    train_loader = DataLoader(train_data, sampler=train_sampler, batch_size=BATCH_SIZE)
-
-    test_data = TensorDataset(torch.LongTensor(input_ids_test),
-                              torch.LongTensor(input_types_test),
-                              torch.LongTensor(input_masks_test),
-                              torch.LongTensor(y_test))
-    test_sampler = SequentialSampler(test_data)
-    test_loader = DataLoader(test_data, sampler=test_sampler, batch_size=BATCH_SIZE)
-
-    return train_loader, test_loader
+    return [input_ids[:train_len], input_segs[:train_len], input_masks[:train_len], label[:train_len]], \
+           [input_ids[train_len:], input_segs[train_len:], input_masks[train_len:], label[train_len:]]
 
 
 def Quora(pad_size=48):
@@ -153,7 +89,7 @@ def Quora(pad_size=48):
         assert len(ids) == len(masks) == len(segs) == pad_size
         label.append([int(row['is_duplicate'])])
 
-    return process_data(input_ids, input_segs, input_masks, label)
+    return [input_ids, input_segs, input_masks, label], []
 
 
 def SICK(pad_size=48):
@@ -187,10 +123,14 @@ def SICK(pad_size=48):
         else:
             label.append(2)
 
-    return process_data(input_ids, input_segs, input_masks, label)
+    return [input_ids, input_segs, input_masks, label], []
 
 
-def AGNews(pad_size=60, sample_size=0, random=False):
+def AGNews(pad_size=60):
+
+    if pad_size == 0:
+        pad_size = 60
+
     train = pd.read_csv('../data/AGNews/train.csv')
     test = pd.read_csv('../data/AGNews/test.csv')
 
@@ -211,15 +151,11 @@ def AGNews(pad_size=60, sample_size=0, random=False):
             continue
 
         # 得到input_id, seg_id, att_mask
-        # 得到input_id, seg_id, att_mask
-        x1 = tokenizer.tokenize(s1)
-        x2 = tokenizer.tokenize(s2)
-        len_1, len_2 = len(x1), len(x2)
+        x = tokenizer.tokenize(s1+s2)
 
-        tokens = ["[CLS]"] + x1 + x2 + ["[SEP]"]
+        tokens = ["[CLS]"] + x + ["[SEP]"]
         ids = tokenizer.convert_tokens_to_ids(tokens)
-        segs = [0] * (len_1 + len_2 + 2)
-        # segs = [0] * len(ids)
+        segs = [0] * len(ids)
         masks = [1] * len(ids)
         # 短则补齐，长则切断
         if len(ids) < pad_size:
@@ -237,51 +173,17 @@ def AGNews(pad_size=60, sample_size=0, random=False):
         assert len(ids) == len(masks) == len(segs) == pad_size
         label.append([int(row['class']) - 1])
 
-    if sample_size > 0:
-        if not random:
-            return process_data(input_ids[:sample_size], input_segs[:sample_size],
-                                input_masks[:sample_size], label[:sample_size])
-        else:
-            id_sample = np.random.choice(input_ids, sample_size, replace=False)
-            seg_sample = np.random.choice(input_segs, sample_size, replace=False)
-            mask_sample = np.random.choice(input_masks, sample_size, replace=False)
-            label_sample = np.random.choice(label, sample_size, replace=False)
-
-            return process_data(id_sample, seg_sample, mask_sample, label_sample)
-
     train_len = len(train)
 
-    input_ids_train = np.array(input_ids[:train_len])
-    input_types_train = np.array(input_segs[:train_len])
-    input_masks_train = np.array(input_masks[:train_len])
-    y_train = np.array(label[:train_len])
-    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
-
-    input_ids_test = np.array(input_ids[train_len:])
-    input_types_test = np.array(input_segs[train_len:])
-    input_masks_test = np.array(input_masks[train_len:])
-    y_test = np.array(label[train_len:])
-    print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
-
-    BATCH_SIZE = 16
-    train_data = TensorDataset(torch.LongTensor(input_ids_train),
-                               torch.LongTensor(input_types_train),
-                               torch.LongTensor(input_masks_train),
-                               torch.LongTensor(y_train))
-    train_sampler = RandomSampler(train_data)
-    train_loader = DataLoader(train_data, sampler=train_sampler, batch_size=BATCH_SIZE)
-
-    test_data = TensorDataset(torch.LongTensor(input_ids_test),
-                              torch.LongTensor(input_types_test),
-                              torch.LongTensor(input_masks_test),
-                              torch.LongTensor(y_test))
-    test_sampler = SequentialSampler(test_data)
-    test_loader = DataLoader(test_data, sampler=test_sampler, batch_size=BATCH_SIZE)
-
-    return train_loader, test_loader
+    return [input_ids[:train_len], input_segs[:train_len], input_masks[:train_len], label[:train_len]], \
+           [input_ids[train_len:], input_segs[train_len:], input_masks[train_len:], label[train_len:]]
 
 
 def NG(pad_size=300):
+
+    if pad_size <= 0:
+        pad_size = 300
+
     newsgroup_train = fetch_20newsgroups(subset='train')
     newsgroup_test = fetch_20newsgroups(subset='test')
 
@@ -312,8 +214,7 @@ def NG(pad_size=300):
 
         tokens = ["[CLS]"] + x + ["[SEP]"]
         ids = tokenizer.convert_tokens_to_ids(tokens)
-        segs = [0] * (len(tokens))
-        # segs = [0] * len(ids)
+        segs = [0] * len(ids)
         masks = [1] * len(ids)
         # 短则补齐，长则切断
         if len(ids) < pad_size:
@@ -332,32 +233,8 @@ def NG(pad_size=300):
 
     train_len = len(train)
 
-    input_ids_train = np.array(input_ids[:train_len])
-    input_types_train = np.array(input_segs[:train_len])
-    input_masks_train = np.array(input_masks[:train_len])
-    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
-
-    input_ids_test = np.array(input_ids[train_len:])
-    input_types_test = np.array(input_segs[train_len:])
-    input_masks_test = np.array(input_masks[train_len:])
-    print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
-
-    BATCH_SIZE = 16
-    train_data = TensorDataset(torch.LongTensor(input_ids_train),
-                               torch.LongTensor(input_types_train),
-                               torch.LongTensor(input_masks_train),
-                               torch.LongTensor(y_train))
-    train_sampler = RandomSampler(train_data)
-    train_loader = DataLoader(train_data, sampler=train_sampler, batch_size=BATCH_SIZE)
-
-    test_data = TensorDataset(torch.LongTensor(input_ids_test),
-                              torch.LongTensor(input_types_test),
-                              torch.LongTensor(input_masks_test),
-                              torch.LongTensor(y_test))
-    test_sampler = SequentialSampler(test_data)
-    test_loader = DataLoader(test_data, sampler=test_sampler, batch_size=BATCH_SIZE)
-
-    return train_loader, test_loader
+    return [input_ids[:train_len], input_segs[:train_len], input_masks[:train_len], y_train], \
+           [input_ids[train_len:], input_segs[train_len:], input_masks[train_len:], y_test]
 
 
 def SNLI(pad_size=48):
@@ -399,22 +276,11 @@ def SNLI(pad_size=48):
 
     train_len = len(train)
 
-    input_ids_train = np.array(input_ids[:train_len])
-    input_types_train = np.array(input_segs[:train_len])
-    input_masks_train = np.array(input_masks[:train_len])
-    y_train = np.array(label[:train_len])
-
-    input_ids_test = np.array(input_ids[train_len:])
-    input_types_test = np.array(input_segs[train_len:])
-    input_masks_test = np.array(input_masks[train_len:])
-    y_test = np.array(label[train_len:])
-
-    return [input_ids_train, input_types_train, input_masks_train, y_train], \
-           [input_ids_test, input_types_test, input_masks_test, y_test]
+    return [input_ids[:train_len], input_segs[:train_len], input_masks[:train_len], label[:train_len]], \
+           [input_ids[train_len:], input_segs[train_len:], input_masks[train_len:], label[train_len:]]
 
 
 def load_dataset(name, pad_size=0, sample_size=0, random=False, BATCH_SIZE=16, split_rate=0.8):
-
     train, test = None, None
 
     if name == 'AGNews':
