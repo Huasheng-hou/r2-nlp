@@ -8,7 +8,6 @@ from sklearn.datasets import fetch_20newsgroups
 
 
 def process_data(input_ids, input_segs, input_masks, label):
-
     # 随机打乱索引
     random_order = list(range(len(input_ids)))
     np.random.seed(2020)  # 固定种子
@@ -70,7 +69,6 @@ def embeddings(tokenizer, s1, s2, pad_size=48):
 
 
 def MSRP(pad_size=128):
-
     train = pd.read_csv('../data/MSRP/msr_paraphrase_train.txt', sep='\t', quoting=3)
     test = pd.read_csv('../data/MSRP/msr_paraphrase_test.txt', sep='\t', quoting=3)
 
@@ -131,7 +129,6 @@ def MSRP(pad_size=128):
 
 
 def Quora(pad_size=48):
-
     f = pd.read_csv('../data/Quora/quora_duplicate_questions.tsv', sep='\t')
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -160,7 +157,6 @@ def Quora(pad_size=48):
 
 
 def SICK(pad_size=48):
-
     f = pd.read_csv('../data/SICK/SICK.txt', sep='\t', quoting=3)
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -194,8 +190,7 @@ def SICK(pad_size=48):
     return process_data(input_ids, input_segs, input_masks, label)
 
 
-def AGNews(pad_size=60):
-
+def AGNews(pad_size=60, sample_size=0, random=False):
     train = pd.read_csv('../data/AGNews/train.csv')
     test = pd.read_csv('../data/AGNews/test.csv')
 
@@ -240,12 +235,19 @@ def AGNews(pad_size=60):
         input_segs.append(segs)
         input_masks.append(masks)
         assert len(ids) == len(masks) == len(segs) == pad_size
-        label.append([int(row['class'])-1])
+        label.append([int(row['class']) - 1])
 
-        if index >= 9999:
-            break
+    if sample_size > 0:
+        if not random:
+            return process_data(input_ids[:sample_size], input_segs[:sample_size],
+                                input_masks[:sample_size], label[:sample_size])
+        else:
+            id_sample = np.random.choice(input_ids, sample_size, replace=False)
+            seg_sample = np.random.choice(input_segs, sample_size, replace=False)
+            mask_sample = np.random.choice(input_masks, sample_size, replace=False)
+            label_sample = np.random.choice(label, sample_size, replace=False)
 
-    return process_data(input_ids, input_segs, input_masks, label)
+            return process_data(id_sample, seg_sample, mask_sample, label_sample)
 
     train_len = len(train)
 
@@ -280,7 +282,6 @@ def AGNews(pad_size=60):
 
 
 def NG(pad_size=300):
-
     newsgroup_train = fetch_20newsgroups(subset='train')
     newsgroup_test = fetch_20newsgroups(subset='test')
 
@@ -360,7 +361,6 @@ def NG(pad_size=300):
 
 
 def SNLI(pad_size=48):
-
     train = pd.read_csv('../data/SNLI/snli_1.0_train.txt', sep='\t')
     test = pd.read_csv('../data/SNLI/snli_1.0_test.txt', sep='\t')
 
@@ -403,15 +403,87 @@ def SNLI(pad_size=48):
     input_types_train = np.array(input_segs[:train_len])
     input_masks_train = np.array(input_masks[:train_len])
     y_train = np.array(label[:train_len])
-    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
 
     input_ids_test = np.array(input_ids[train_len:])
     input_types_test = np.array(input_segs[train_len:])
     input_masks_test = np.array(input_masks[train_len:])
     y_test = np.array(label[train_len:])
+
+    return [input_ids_train, input_types_train, input_masks_train, y_train], \
+           [input_ids_test, input_types_test, input_masks_test, y_test]
+
+
+def load_dataset(name, pad_size=0, sample_size=0, random=False, BATCH_SIZE=16, split_rate=0.8):
+
+    train, test = None, None
+
+    if name == 'AGNews':
+        train, test = AGNews(pad_size=pad_size)
+    elif name == '20NG':
+        train, test = NG(pad_size=pad_size)
+    elif name == 'DBPedia':
+        train, test = AGNews(pad_size=pad_size)
+    elif name == 'MSRP':
+        train, test = MSRP(pad_size=pad_size)
+    elif name == 'Quora':
+        train, test = Quora(pad_size=pad_size)
+    elif name == 'SICK':
+        train, test = SICK()
+    elif name == 'SNLI':
+        train, test = SNLI()
+    elif name == 'THUCNews':
+        train, test = AGNews()
+
+    ids, segs, masks, labels = train[0], train[1], train[2], train[3]
+
+    ''' Sample data from Original Dataset '''
+    if sample_size > 0:
+        if len(ids) < sample_size:
+            print("Sample size exceeds dataset capacity!")
+            return
+        if not random:
+            ids, segs, masks, labels = ids[:sample_size], segs[:sample_size], masks[:sample_size], labels[:sample_size]
+        else:
+            ids = np.random.choice(ids, sample_size, replace=False)
+            segs = np.random.choice(segs, sample_size, replace=False)
+            masks = np.random.choice(masks, sample_size, replace=False)
+            labels = np.random.choice(labels, sample_size, replace=False)
+
+        test = []
+
+    ''' Split The Dataset or use the original Split Set '''
+    if len(test) <= 0:
+
+        if split_rate >= 1:
+            return
+
+        # 随机打乱索引
+        random_order = list(range(len(ids)))
+        np.random.seed(2020)  # 固定种子
+        np.random.shuffle(random_order)
+        print(random_order[:10])
+
+        # 4:1 划分训练集和测试集
+        input_ids_train = np.array([ids[i] for i in random_order[:int(len(ids) * split_rate)]])
+        input_types_train = np.array([segs[i] for i in random_order[:int(len(ids) * split_rate)]])
+        input_masks_train = np.array([masks[i] for i in random_order[:int(len(ids) * split_rate)]])
+        y_train = np.array([labels[i] for i in random_order[:int(len(ids) * split_rate)]])
+
+        input_ids_test = np.array([ids[i] for i in random_order[int(len(ids) * split_rate):]])
+        input_types_test = np.array([segs[i] for i in random_order[int(len(ids) * split_rate):]])
+        input_masks_test = np.array([masks[i] for i in random_order[int(len(ids) * split_rate):]])
+        y_test = np.array([labels[i] for i in random_order[int(len(ids) * split_rate):]])
+    else:
+        input_ids_train, input_types_train, input_masks_train, y_train = np.array(ids), np.array(segs), \
+                                                                         np.array(masks), np.array(labels)
+        input_ids_test, input_types_test, input_masks_test, y_test = np.asarray(test[0]), np.asarray(test[1]), \
+                                                                     np.asarray(test[2]), np.asarray(test[3])
+
+    ''' Print Input Tensor Sizes '''
+    print(input_ids_train.shape, input_types_train.shape, input_masks_train.shape, y_train.shape)
     print(input_ids_test.shape, input_types_test.shape, input_masks_test.shape, y_test.shape)
 
-    BATCH_SIZE = 16
+    ''' Put the Raw Data into Bert Dataloader '''
     train_data = TensorDataset(torch.LongTensor(input_ids_train),
                                torch.LongTensor(input_types_train),
                                torch.LongTensor(input_masks_train),
