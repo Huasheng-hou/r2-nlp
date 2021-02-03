@@ -31,6 +31,10 @@ def embeddings(tokenizer, s1, s2, pad_size=48):
 
 
 def MSRP(pad_size=128):
+
+    if pad_size == 0:
+        pad_size = 128
+
     train = pd.read_csv('../data/MSRP/msr_paraphrase_train.txt', sep='\t', quoting=3)
     test = pd.read_csv('../data/MSRP/msr_paraphrase_test.txt', sep='\t', quoting=3)
 
@@ -65,6 +69,10 @@ def MSRP(pad_size=128):
 
 
 def Quora(pad_size=48):
+
+    if pad_size == 0:
+        pad_size = 48
+
     f = pd.read_csv('../data/Quora/quora_duplicate_questions.tsv', sep='\t')
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -93,6 +101,10 @@ def Quora(pad_size=48):
 
 
 def SICK(pad_size=48):
+
+    if pad_size == 0:
+        pad_size = 48
+
     f = pd.read_csv('../data/SICK/SICK.txt', sep='\t', quoting=3)
 
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -238,6 +250,10 @@ def NG(pad_size=300):
 
 
 def SNLI(pad_size=48):
+
+    if pad_size == 0:
+        pad_size = 48
+
     train = pd.read_csv('../data/SNLI/snli_1.0_train.txt', sep='\t')
     test = pd.read_csv('../data/SNLI/snli_1.0_test.txt', sep='\t')
 
